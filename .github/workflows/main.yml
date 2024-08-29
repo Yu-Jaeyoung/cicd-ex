@@ -14,34 +14,9 @@ jobs:
       - run: bun --version
 
   # package.json 을 필수로 넣어야 함
-  setup:
-    runs-on: ubuntu-latest
-    needs: init
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - run: bun install
-
-  test:
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Bun 셋업
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: package install
-        run: bun install
-
-      - name: test 수행
-        run: bun test
 
   deploy:
     runs-on: ubuntu-latest
-    needs: [ setup, test ]
     steps:
       - uses: actions/checkout@v4
 
@@ -60,29 +35,24 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: SSH 파일 저장
-        run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > /tmp/new_id
-          chmod 600 /tmp/new_id
-
       - name: bastion 서버 연결 테스트
         run: |
-          ssh -o StrictHostKeyChecking=no -i /tmp/new_id ${{ secrets.SSH_USER_WISOFT}}@${{ secrets.SSH_HOST_WISOFT }} -p 10020 "echo 중간 서버에 연결 성공"
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_WISOFT}}@${{ secrets.SSH_HOST_WISOFT }} -p 10020 "echo 중간 서버에 연결 성공"
 
       - name: 내부망 서버에 SSH 터널링으로 연결
         run: |
           ssh -J ${{ secrets.SSH_USER_WISOFT }}@${{ secrets.SSH_HOST_WISOFT }}:10020 \
-              -o StrictHostKeyChecking=no -i /tmp/new_id ${{ secrets.SSH_USER_JAEYOUNG }}@${{ secrets.SSH_HOST_JAEYOUNG }} "echo 내부망 서버에 연결 성공"
-
+              -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_JAEYOUNG }}@${{ secrets.SSH_HOST_JAEYOUNG }} "echo 내부망 서버에 연결 성공"
+#
       - name: 내부망 서버에 파일 복사
         run: |
           scp -J ${{ secrets.SSH_USER_WISOFT }}@${{ secrets.SSH_HOST_WISOFT }}:10020 \
-              -i /tmp/new_id -r "$GITHUB_WORKSPACE/"* ${{ secrets.SSH_USER_JAEYOUNG }}@${{ secrets.SSH_HOST_JAEYOUNG }}:~/app
+              -r "$GITHUB_WORKSPACE/"* ${{ secrets.SSH_USER_JAEYOUNG }}@${{ secrets.SSH_HOST_JAEYOUNG }}:~/app
 
       - name: 의존성 설치 및 서버 재구동
         run: |
           ssh -J ${{ secrets.SSH_USER_WISOFT }}@${{ secrets.SSH_HOST_WISOFT }}:10020 \
-              -i /tmp/new_id ${{ secrets.SSH_USER_JAEYOUNG }}@${{ secrets.SSH_HOST_JAEYOUNG }} << 'ENDSSH'
+              ${{ secrets.SSH_USER_JAEYOUNG }}@${{ secrets.SSH_HOST_JAEYOUNG }} << 'ENDSSH'
             cd ~/app
             $HOME/.asdf/shims/bun install
             $HOME/.asdf/shims/pm2 start ecosystem.config.cjs

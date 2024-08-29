@@ -4,7 +4,25 @@ const server = Bun.serve({
     const path = new URL(req.url).pathname;
 
     if (path === "/") {
-      return new Response("Welcome to Bun!");
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html lang="ko">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Welcome to Bun!</title>
+        </head>
+        <body>
+          <h1>2024 WiSoft Summer WorkShop</h1>
+        </body>
+        </html>
+      `;
+
+      return new Response(htmlContent, {
+        headers: {
+          "Content-Type": "text/html",
+        },
+      });
     }
 
     return new Response("Not found", { status: 404 });
