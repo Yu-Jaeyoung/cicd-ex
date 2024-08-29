@@ -6,10 +6,18 @@ on:
       - main
 
 jobs:
-  setup:
+  init:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+      - run: bun --version
 
+  # package.json 을 필수로 넣어야 함
+  setup:
+    runs-on: ubuntu-latest
+    needs: init
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
       - run: bun install
